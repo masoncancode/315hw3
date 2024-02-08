@@ -1,0 +1,106 @@
+---
+title: "Homework 3"
+author: "Mason Reed"
+date: "2024-02-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(mosaic)
+creatinine = read.csv('creatinine.csv')
+stocks = read.csv('marketmodel.csv')
+covid = read.csv('covid.csv')
+milk = read.csv('milk.csv')
+```
+
+### Creatinine
+```{r}
+ggplot(creatinine) + geom_point(aes(x = age, y = creatclear)) + labs(title = "Creatine Clearence By Age", x = "Age", y = "Creatinine Clearance Rate (mL/minute)") + geom_smooth(aes(x = age, y = creatclear), method = 'lm')
+```
+
+```{r}
+creatinine_model = lm(creatclear ~ age, data = creatinine)
+predictSet = tibble(age = c(55,40,60))
+coef(creatinine_model)
+predictSet = mutate(predictSet, predicted_clearance = predict(creatinine_model,predictSet))
+predictSet
+```
+
+### A: Expected Creatinine Clearance Rate:
+For a 55 year-old, the expected creatinine clearance rate is 113.7 mL/minute according the linear model plotted on the graph above.
+This 113.7 mL/minute rate was found from the equation depicting the linear model of the given dataset on creatinine clearance rate and age. 147.8129 -.6198(55) = 113.724. The 147.8129 is the y-intercept, where the model predicts the clearance rate at age 0 and the -.06198 represents the predicted decrease in creatinine clearance rate per year of age.
+
+### B: Creatinine Clearance Rate With Age:
+Creatinine clearance rate appears to decrease by .06198 ml/minute per year aged. This relationship was found using the linear model plotted above and is the slope of the model's line. 
+
+### C: Creatinine Clearance Comparison Considering Age
+The expected creatinine clearance rate at age 40 is about 123 mL/minute while the expected creatinine clearance rate for a 60 year-old is about 110.6 mL/minute. This makes a 40 year-old with a creatinine clearance rate of 135 have a higher clearance rate for their age in comparision to a 60 year old with a clearance rate of 112, since the expected clearance rate for the 40 year old would be about 12 ml/minute lower than the observed 135 ml/minute for the 40 year-old, which is a smaller difference than the 1.376 mL/minute between the 60 year-old's expected and observed values.
+
+
+# Capital Asset Pricing Model
+
+```{r}
+aaplModel = lm(AAPL ~ SPY, stocks)
+googModel = lm(GOOG ~ SPY, stocks)
+mrkModel = lm(MRK ~ SPY, stocks)
+jnjModel = lm(JNJ ~ SPY, stocks)
+wmtModel = lm(WMT ~ SPY, stocks)
+tgtModel = lm(TGT ~ SPY, stocks)
+stockModels = c(coef(aaplModel)[2],coef(googModel)[2],coef(mrkModel)[2],coef(jnjModel)[2],coef(wmtModel)[2],coef(tgtModel)[2])
+stockTickers = c("AAPL","GOOG","MRK","JNJ","WMT","TGT")
+stockBetas = tibble(company = stockTickers, beta = stockModels)
+stockBetas
+```
+This table shows the beta value calculated using the S&P 500 index as the base and has values from January 3rd, 2019 to Sep 9 2020. AAPL - Apple, GOOG - Google, MRK - Merck, JNJ - Johnson and Johnson, WMT - Wal-mart, TGT - Target
+
+### Beta Of A Stock
+The beta of a stock measures how much a stock's return changes based on the overall market's changes. Higher beta values mean that when the overall stock market has high returns, high-beta stocks will return more. Lower beta values mean that those stock values aren't affected as much by overall market return changes. A zero beta value depicts a company that has very little volatility from the overall market. Negative beta values depict a company that does better when the overall market returns are lower. This beta value is found by fitting the company's returns with a measure of the overall market like the S&P 500 Index returns in a linear model. The slope of this linear model is the beta value. It tracks the increase in expected returns for a company given an increase in the overall market's returns.
+
+
+### Systemic Risk
+Apple has the highest systemic risk since its beta value is highest. This means that it depends more on good overall market performance for high returns. Wal-mart has the lowest beta value and thereby the lowest systemic risk. This is because the lower beta value suggests that Walmart's returns are less affected by overall market changes.
+
+
+### Covid Deaths In Italy And Spain
+```{r}
+italyDeaths = filter(covid, country == 'Italy') %>%
+  select(c(1,3,4))
+spainDeaths = filter(covid, country == 'Spain') %>%
+  select(c(1,3,4))
+
+ggplot(covid, aes(x = days_since_first_death, y = deaths, group = country, color = country)) + geom_line() + labs(title = "Growth Of Daily Covid Deaths In Italy And Spain", x = "Days Since First Covid Death", y = "Deaths On Given Day") 
+
+italyModel = lm(log(deaths) ~ days_since_first_death, italyDeaths)
+spainModel = lm(log(deaths) ~ days_since_first_death, spainDeaths)
+country = c("Italy","Spain")
+growth_rate = c(round(coef(italyModel)[2], 3), round(coef(spainModel)[2],3))
+doubling_time = round(70/(growth_rate*100))
+covidModels = tibble("Country" = country, "Est. Doubling Time (days)" = doubling_time, "Growth Rate" = growth_rate)
+```
+
+The line graph shows the deaths on each day since the first covid death in each country. The orange line plots the daily deaths in Italy and the blue line plots the daily deaths in Spain. 
+
+```{r}
+covidModels
+```
+
+Italy's daily Covid deaths growth rate was 0.183 or 18.3% per day and the estimated doubling time was about 4 days. Spain's daily Covid deaths grew by about 27.6% per day and the estimated doubling time of daily deaths was 3 days. The daily deaths appear to grow in an exponential manner as shown in the line graph. The growth rate was found using a linear model based on the natural log of daily deaths and days since the first death. The resulting slope is equivalent to the growth rate in the exponential model of daily deaths. 
+
+
+### Milk
+```{r}
+milkModel = lm(log(sales) ~ log(price), milk)
+```
+
+The estimated price elasticity of milk is about `r round(coef(milkModel)[2],3)`. The power law model fitted for milk demand was found by fitting a linear model to the natural log of both milk sales (quantity demanded) and price. The slope of this linear model is equivalent to the price elasticity of milk. 
+
+R code: https://github.com/masoncancode/315hw3
+
+
